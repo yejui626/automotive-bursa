@@ -1,0 +1,8 @@
+pandas
+yfinance
+ipykernel
+pyarrow
+fastparquet
+bs4
+lxml
+selenium
