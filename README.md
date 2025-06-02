@@ -1,10 +1,10 @@
-# 📊 Dataset Overview
+# 📊 Automotive Bursa Malaysia: Data & Exploratory Analysis Overview
 
-Three distinct datasets to investigate the relationship between national car registration trends and the quarterly financial performance and stock prices of selected automotive companies listed on Bursa Malaysia. The goal is to explore whether vehicle registration data—available prior to quarterly earnings announcements—can serve as a predictive indicator of financial or stock price movements.
+This project investigates the relationship between national car registration trends and the quarterly financial performance and stock prices of selected automotive companies listed on Bursa Malaysia. The core objective is to explore whether vehicle registration data—available prior to quarterly earnings announcements—can serve as a predictive indicator of financial or stock price movements.
+
+---
 
 ## 🏢 Companies Covered
-
-The following publicly listed automotive companies are included in the analysis:
 
 | Company Name                  | Bursa Stock Code |
 |------------------------------|------------------|
@@ -16,43 +16,110 @@ The following publicly listed automotive companies are included in the analysis:
 
 These companies represent key players in Malaysia’s automotive industry, covering vehicle assembly, distribution, and sales.
 
+---
+
 ## 🗓 Time Range and Coverage
 
 | Dataset                   | Time Frame                  | Remarks                                                                 |
 |---------------------------|-----------------------------|-------------------------------------------------------------------------|
-| Vehicle Registration      | Jan 2023 – Mar 2025         | Monthly data from JPJ/DOSM, used as industry proxy                      |
+| Vehicle Registration      | Jan 2018 – Mar 2025         | Monthly data from JPJ/DOSM, used as industry proxy                      |
 | Quarterly Financials      | Full historical results     | All available quarters; Sime UMW available up to Feb 2024 (manual input possible) |
 | Stock Prices              | Matches financials dataset  | Daily or quarterly-closing data aligned with financial result periods   |
+| Macroeconomic Indicators  | Jan 2018 – Mar 2025         | Monthly CPI, BNM OPR, Labour Force Statistics                           |
 
-Each dataset is time-aligned to facilitate correlation and trend analysis across reporting cycles.
+All datasets are time-aligned to facilitate correlation and trend analysis across reporting cycles.
 
-## 📁 Dataset Structure
+---
 
-The data is structured and stored as follows:
+## 📁 Data Structure & Extraction
 
-- **Quarterly Financials**: Contains company-specific historical financial metrics on a quarterly basis, indexed by stock code and quarter-end date.
-- **Stock Prices**: Comprises historical stock prices for each company, aligned with earnings reporting periods for comparative analysis.
-- **Vehicle Registration Data**: Provides national monthly registration counts, categorized by vehicle type, representing sector-level demand signals.
+- **Vehicle Registration Data**: Monthly registration counts by company, derived from DOSM/JPJ data (2018–2025). Data is cleaned, mapped to public-listed companies, and available at both daily and monthly granularity.
+- **Quarterly Financials**: Company-specific historical financial metrics on a quarterly basis, scraped from i3investor and cleaned for analysis.
+- **Stock Prices**: Daily and quarterly-closing prices for each company, sourced from Yahoo Finance (`yfinance`) and Investing.com for delisted stocks.
+- **Macroeconomic Data**: Includes Consumer Price Index (CPI) for cars, Bank Negara Malaysia (BNM) Overnight Policy Rate (OPR), and Labour Force Statistics, all merged at monthly frequency.
 
-All datasets include the necessary timestamp and identifier fields (e.g., dates, stock codes) to enable merging and analysis without the need for data imputation or complex transformation.
+All extraction and cleaning scripts are in [`data-extraction.ipynb`](data-extraction.ipynb) and [`data-preparation.ipynb`](data-preparation.ipynb). Data is stored in the `data/` directory, with subfolders for each dataset.
 
-## 🛠️ Data Extraction & Scraping Process
+---
 
-All datasets in this project are programmatically extracted and kept up-to-date using reproducible scripts and notebooks:
+## 🛠️ Data Extraction & Processing Workflow
 
-### 1. Vehicle Registration Data
+1. **Vehicle Registration**:  
+   - Downloaded as Parquet files per year from [data.gov.my](https://data.gov.my/data-catalogue/registration_transactions_car).
+   - Cleaned, mapped to listed companies, and aggregated to daily/monthly counts ([`data-preparation.ipynb`](data-preparation.ipynb)).
 
-- **Source:** [data.gov.my](https://data.gov.my/data-catalogue/registration_transactions_car)
-- **Method:** The notebook [`data-extraction.ipynb`](data-extraction.ipynb) uses `pandas` to directly download and process Parquet files for each year (2023–2025). The script converts registration dates to datetime format and saves the cleaned data locally in the `data/` folder.
+2. **Quarterly Financials**:  
+   - Scraped using Selenium and BeautifulSoup from [i3investor.com](https://klse.i3investor.com/).
+   - Cleaned and merged into a master CSV for all companies.
 
-### 2. Quarterly Financial Results
+3. **Stock Prices**:  
+   - Downloaded via `yfinance` for each Bursa stock code.
+   - Delisted stocks (e.g., Sime UMW post-Feb 2025) are manually downloaded.
 
-- **Source:** [i3investor.com](https://klse.i3investor.com/)
-- **Method:** The notebook leverages `selenium` (headless Chrome) and `BeautifulSoup` to automate browsing and scrape quarterly financial tables for each company. Data is parsed into `pandas` DataFrames and saved as both CSV and Parquet files in `data/quarterly_financials/`.
+4. **Macroeconomic Data**:  
+   - CPI for cars and Labour Force Statistics from DOSM.
+   - BNM OPR rates manually compiled and forward-filled to monthly frequency.
 
-### 3. Stock Price Data
+5. **Data Merging**:  
+   - All datasets are merged on date (monthly or quarterly) for unified analysis.
 
-- **Source:** [Yahoo Finance](https://finance.yahoo.com/) via `yfinance` Python package.
-- **Method:** The notebook downloads daily historical stock prices for each company using their Bursa Malaysia stock codes. Data is saved as CSV and Parquet in `data/stock_prices/`. For delisted stocks (e.g., Sime UMW post-Feb 2025), data is manually downloaded from [investing.com](https://www.investing.com/equities/umw-holdings-bhd-historical-data).
+---
 
-All scripts are located in [`data-extraction.ipynb`](data-extraction.ipynb) and are designed for easy re-execution to refresh the datasets as new data becomes available.
+## 🔎 Exploratory Data Analysis (EDA) Highlights
+
+### 1. Revenue vs Vehicle Registration
+
+- **Strong Positive Correlation**:  
+  All companies show strong positive correlations (ranging from 0.816 to 0.971) between vehicle registration volume and revenue.
+    - **Tan Chong Motor Holdings Berhad**: Correlation ≈ 0.97 (almost linear relationship).
+    - **DRB-HICOM Berhad**: Correlation ≈ 0.91.
+    - **Sime UMW Holdings Berhad**: Correlation ≈ 0.90.
+    - **Sime Darby Berhad**: Correlation ≈ 0.84.
+    - **Bermaz Auto Berhad**: Correlation ≈ 0.82 (other factors like model mix, pricing, and government policy also play a role).
+
+- **Operational KPI**:  
+  Vehicle registration data is a leading indicator for revenue, allowing for early estimation of financial performance before quarterly results are published.
+
+- **Company-Specific Insights**:  
+  - **Tan Chong** and **DRB-HICOM**: Revenue is highly dependent on vehicle sales volume.
+  - **Bermaz Auto**: Revenue influenced by vehicle count and other factors (e.g., tax holidays, model launches).
+  - **Sime Darby**: Slightly lower correlation due to diversified business segments.
+
+### 2. Macroeconomic Factors
+
+- **Merged Dataset**:  
+  Monthly vehicle registration data is combined with macroeconomic indicators (CPI, OPR, Labour Force).
+- **Correlation Analysis**:  
+  - Vehicle count shows varying degrees of correlation with macroeconomic variables (e.g., CPI for cars, unemployment rate).
+  - Exogenous variables (CPI, OPR, unemployment) are used in time series forecasting models.
+
+### 3. Time Series Forecasting
+
+- **SARIMAX/ARIMAX Models**:  
+  - Used to forecast monthly vehicle registrations for each company, incorporating macroeconomic exogenous variables.
+  - Models validated on recent periods (e.g., Oct 2024 – Mar 2025) show reasonable predictive performance.
+
+### 4. Outlier & Event Analysis
+
+- **Outliers**:  
+  - Notable outliers (e.g., TCMH) often coincide with new model launches or government policy changes (e.g., tax holidays).
+  - Suggests the value of incorporating event-based features in predictive models.
+
+---
+
+## 📂 Notebooks Overview
+
+- [`data-extraction.ipynb`](data-extraction.ipynb): Data download, scraping, and initial cleaning.
+- [`data-preparation.ipynb`](data-preparation.ipynb): Data merging, mapping, and preparation for analysis.
+- [`eda/1. revenue-vs-vehicle_count-eda.ipynb`](eda/1.%20revenue-vs-vehicle_count-eda.ipynb): Analysis of the relationship between vehicle registrations and revenue.
+- [`eda/2. macro-vs-vehicle_count-eda.ipynb`](eda/2.%20macro-vs-vehicle_count-eda.ipynb): Analysis of macroeconomic factors and time series forecasting.
+
+---
+
+## 📈 Key Takeaways
+
+- **Vehicle registration data is a robust, timely operational KPI for forecasting automotive company revenue in Malaysia.**
+- **Macroeconomic indicators provide additional explanatory power and can improve forecasting accuracy.**
+- **The project’s reproducible pipeline enables ongoing updates and extension to new companies or macroeconomic variables.**
+
+---
